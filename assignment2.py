@@ -3,23 +3,24 @@
 '''
 OPS445 Assignment 2 - Winter 2023
 Program: assignment2.py 
-Author: "Student Name"
+Author: "Jude Owusu"
 The python code in this file is original work written by
-"Student Name". No code in this file is copied from any other source 
+"Jude Owusu". No code in this file is copied from any other source 
 except those provided by the course instructor, including any person, 
 textbook, or on-line resource. I have not shared this python script 
 with anyone or anything except for submission for grading.  
 I understand that the Academic Honesty Policy will be enforced and 
 violators will be reported and appropriate action will be taken.
 
-Description: <Enter your documentation here>
+Description: Curerntly compeleting milestone one 
 
-Date: 
+Date: 2026-07-18
 
 '''
 
 import argparse
-import os, sys
+import os
+import sys
 
 def parse_command_args() -> object:
     "Set up argparse here. Call this function inside main."
@@ -32,17 +33,46 @@ def parse_command_args() -> object:
 
 def percent_to_graph(percent: float, length: int=20) -> str:
     "turns a percent 0.0 - 1.0 into a bar graph"
-    pass
+    #Scale the percent to a number of '#' symbols using the bar length.
+    #round() ensures 0.65 * 20 = 13 hashes, not 12 (which int() would give) 
+    num_hashes = round(percent * length)
+    #Fill the remaining characters with spaces so the bar is always `length` wide
+    return '#' * num_hashes + ' ' * (length - num_hashes)
+
 
 def get_sys_mem() -> int:
     "return total system memory (used or available) in kB"
-    # open the meminfo file to do this!
-    pass
+    #open the meminfo file to do this!
+    with open('/proc/meminfo', 'r') as mem_file:
+    #MemTotal is always the first line, so readline reads just what we need
+            line = mem_file.readline()
+    #Split()[1] grabs the number. format is "MemTotal:    15221204 kB"
+            return int(line.split()[1])
+    
 
 def get_avail_mem() -> int:
     "return total memory that is currently available"
     # open the meminfo file to do this!
-    pass
+    mem_free = 0
+    swap_free = 0
+
+    #/proc/meminfo is a kernel file that exposes live system memory stats
+    with open('/proc/meminfo', 'r') as mem_file:
+                lines = mem_file.read().splitlines()
+    for line in lines:
+        #MemAvailable is the most accurate value on standard Linux return immediately
+        if line.startswith('MemAvailable:'):
+             return int(line.split()[1])
+        #Save in case we need the WSL fallback
+        elif line.startswith('MemFree:'):
+            mem_free = int(line.split()[1])
+        #Save in case we need the WSL fallback
+        elif line.startswith('SwapFree:'):
+            swap_free = int(line.split()[1])
+        
+        #MemAvailable is absent on WSL, so approximate with MemFree + SwapFree
+    return mem_free + swap_free
+    
 
 def pids_of_prog(app_name: str) -> list:
     "given an app name, return all pids associated with app"
@@ -69,7 +99,13 @@ def bytes_to_human_r(kibibytes: int, decimal_places: int=2) -> str:
 
 if __name__ == "__main__":
     args = parse_command_args()
-    if not args.program:  # not program name is specified.
-        pass
+    if not args.program:  # no program name specified — show total system memory usage
+        total = get_sys_mem()
+        avail = get_avail_mem()
+        used = total - avail                    # memory in use = total minus what's available
+        percent = used / total                  # fraction used, between 0.0 and 1.0
+        bar = percent_to_graph(percent, args.length)
+        percent_int = round(percent * 100)
+        print(f"{'Memory':<15}[{bar} | {percent_int:>2}%] {used}/{total}")
     else:
         pass
